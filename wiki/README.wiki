@@ -17,7 +17,7 @@ ROS: ROS server and sample client for the arm and hand
 
 WAMinterfacelib: 
  * Functions to interface with the Barrett arm and hand directly (can be used without ROS if the Makefile is changed to include the paths to btclient) 
- * A simple socket interface (can also be used without ROS, from the same or a different computer, or from any language that you can write a socket client in)
+ * A simple socket interface (can also be used without ROS, from the same or a different computer, or from any language that you can write a socket server in.  The provided socket server is written in Python.)
 
 WAMinversekinematics: 
  * C analytical inverse kinematics function for the 7-DOF Barrett WAM (written by Manfred Huber.  Searches over joint 2 and solves the rest analytically.)
