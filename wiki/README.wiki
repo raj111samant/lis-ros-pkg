@@ -1,6 +1,5 @@
 #summary This page contains the README from the WAMinterfacelib directory.
 
-= README ==
 Barrett WAM and Hand interface and inverse kinematics library.
 author: Kaijen Hsiao (kaijenhsiao@gmail.com)
 
