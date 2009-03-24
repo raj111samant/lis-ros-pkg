@@ -16,12 +16,12 @@ In this directory:
 ROS: ROS server and sample client for the arm and hand
 
 WAMinterfacelib: 
-    -functions to interface with the Barrett arm and hand directly (can be used without ROS if the Makefile is changed to include the paths to btclient) 
-    -a simple socket interface (can also be used without ROS, from the same or a different computer, or from any language that you can write a socket client in)
+*functions to interface with the Barrett arm and hand directly (can be used without ROS if the Makefile is changed to include the paths to btclient) 
+*a simple socket interface (can also be used without ROS, from the same or a different computer, or from any language that you can write a socket client in)
 
 WAMinversekinematics: 
-    -C analytical inverse kinematics function for the 7-DOF Barrett WAM (written by Manfred Huber.  Searches over joint 2 and solves the rest analytically.)
-    -Python optimization inverse kinematics using scipy's fmin_cobyla, which is good for those barely-out-of-reach goals.  (also, python ctypes bindings for the C IK library.)
+*C analytical inverse kinematics function for the 7-DOF Barrett WAM (written by Manfred Huber.  Searches over joint 2 and solves the rest analytically.)
+*Python optimization inverse kinematics using scipy's fmin_cobyla, which is good for those barely-out-of-reach goals.  (also, python ctypes bindings for the C IK library.)
 
 btdiag: Barrett's standard btdiag, with a couple added extras (BHand arbitrary command, move arm home).  Mostly used for Makefile testing.
 
