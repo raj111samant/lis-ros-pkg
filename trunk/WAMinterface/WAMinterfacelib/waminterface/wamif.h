@@ -82,8 +82,12 @@ void wamif_calibrate_arm(WamInterface *serv);
 void wamif_move_joint(WamInterface *serv, double *jointangles);
 
 //Get joint positions
-//param jointangles to be filled int - 7 joint angles
+//param jointangles to be filled in - 7 joint angles
 void wamif_get_joint(WamInterface *serv, double *jointangles); 
+
+//Get motor angles
+//param motorangles to be filled in - radians away from zero pos for each motor
+void wamif_get_motor_angles(WamInterface *serv, double *motorangles);
 
 //Run a joint trajectory file
 //param filename - joint trajectory file (barrett format)

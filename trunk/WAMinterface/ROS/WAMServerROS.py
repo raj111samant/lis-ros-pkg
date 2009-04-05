@@ -22,7 +22,7 @@ sockserver = 0
 def connect_WAM_client(req):
     global sock
     global sockserver
-    
+
     if sock:
         print "sock was already open, shutting it down"
         socketservercmds.shut_down(sockserver)
@@ -135,6 +135,16 @@ def get_joint_angles(req):
     return EmptyJointAnglesResponse(jointangles)
 
 
+#get the current motor angles (radians from zero pos)
+def get_motor_angles(req):
+    print "about to get motor angles"
+    try:
+        motorangles = socketservercmds.get_motor_angles(sock)
+    except:
+        print "error in get_motor_angles"
+    return EmptyJointAnglesResponse(motorangles)
+
+        
 #move to a set of joint angles
 def move_to_joint(req):
     print "moving to joint angles:", ppdoublearray(req.jointangles)
@@ -363,6 +373,7 @@ def run_server():
     rospy.Service('trajectory_status', TrajectoryStatus, trajectory_status)
     rospy.Service('disable_controllers', Empty, disable_controllers)
     rospy.Service('get_joint_angles', EmptyJointAngles, get_joint_angles)
+    rospy.Service('get_motor_angles', EmptyJointAngles, get_motor_angles)
     rospy.Service('move_to_joint', JointAnglesEmpty, move_to_joint)
     rospy.Service('arm_home', Empty, arm_home)
     rospy.Service('set_torque_limits', TorqueLimits, set_torque_limits)

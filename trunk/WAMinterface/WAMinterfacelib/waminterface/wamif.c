@@ -396,6 +396,14 @@ void wamif_get_joint(WamInterface *serv, double *jointangles) {
 }
 
 
+//get the current motor angles 
+//(not just within one revolution, but radians moved away from the zero pos)
+void wamif_get_motor_angles(WamInterface *serv, double *motorangles){
+	int i;
+	for(i=0; i<7; i++) motorangles[i] = getval_vn(serv->wam->Mpos, i);
+}
+
+
 //read in a trajectory from file 
 void read_trajectory_file(WamInterface *serv, char *filename){
 	//read in a new trajectory from file 

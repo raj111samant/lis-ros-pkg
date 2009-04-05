@@ -7,6 +7,11 @@ import sys
 import time
 import math
 
+#pretty-print a double array
+def ppdoublearray(array):
+    strlist = ["%4.2f"%x for x in array]
+    return " ".join(strlist)
+
 
 #Client/server commands
 
@@ -224,6 +229,13 @@ def get_joint(sock):
     send(sock, "gja")
     jointangles = read_double_array(sock, 7)
     return jointangles
+
+
+#get current motor angles (rad from zero pos)
+def get_motor_angles(sock):
+    send(sock, "gmc")
+    motorcounts = read_double_array(sock, 7)
+    return motorcounts
 
 
 #send the arm back home (returns 1 if success, 0 if failure)
@@ -474,7 +486,7 @@ def keypause():
 if __name__ == '__main__':
     sockserver = start_server(4321)
     movearm = 1
-    movehand = 1
+    movehand = 0
     pause = 0
     while 1:    # Run until cancelled with Ctrl-C
 
@@ -483,6 +495,10 @@ if __name__ == '__main__':
         if movearm:
             print "connecting to arm"
             connect_arm(sock)
+
+            print "getting motor counts"
+            motorangles = get_motor_angles(sock)
+            print "motorangles:", ppdoublearray(motorangles)
 
             torquelimits = [7.75,7.75,7.75,7.75,2.5,2.5,2]
             print "setting torque limits to", torquelimits
@@ -502,7 +518,7 @@ if __name__ == '__main__':
             
             print "getting current joint angles"
             currentjointangles = get_joint(sock)
-            print "jointangles:", currentjointangles
+            print "jointangles:", ppdoublearray(currentjointangles)
             if pause:
                 keypause()
 

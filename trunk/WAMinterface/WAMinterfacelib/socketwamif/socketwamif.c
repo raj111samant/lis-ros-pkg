@@ -246,6 +246,19 @@ void parse_input(){
 		write_double_array(sockid, jointangles, 7);
 	}
 
+	//get current motor angles (rad from zero pos, returns 7-array of doubles)
+	else if(!strcmp(header, "gmc")){
+		double motorangles[7] = {0,0,0,0,0,0,0};
+		if(wamif){
+			printf("returning current motor angles\n");
+			wamif_get_motor_angles(wamif, motorangles);
+		}
+		else{
+			printf("connect the arm first!\n");
+		}
+		write_double_array(sockid, motorangles, 7);
+	}
+
 	//send arm back home
 	else if(!strcmp(header, "hom")){
 		if(wamif){
