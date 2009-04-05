@@ -50,6 +50,9 @@ while(1):
     print "forward kinematics thinks:"
     palmrot = forward_kinematics(jointangles)
     ppmat4(palmrot)
+    tablepos = list(pos)
+    tablepos[2] += .346
+    print "position relative to table:", pplisttostr(tablepos)
 
     print "analytical inverse kinematics came up with:"
     zeroangles = [0]*7

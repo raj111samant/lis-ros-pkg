@@ -100,6 +100,12 @@ def get_joint_angles():
     return resp.jointangles
 
 
+#get the current motor angles (radians from zero pos)
+def get_motor_angles():
+    resp = call_ROS_service('get_motor_angles', EmptyJointAngles)
+    return resp.jointangles
+
+
 #move to a set of joint angles
 def move_to_joint(jointangles):
     resp = call_ROS_service('move_to_joint', JointAnglesEmpty, [jointangles])
