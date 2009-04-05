@@ -5,7 +5,9 @@ To compute transmission ratios, uncomment mode = "compute_ratios"'''
 #mode = "take_data"
 mode = "compute_ratios"
 
-import wamik
+import roslib
+roslib.load_manifest('WAMinterface')
+from WAMClientROSFunctions import *
 import scipy
 import time
 import cPickle as pickle
@@ -49,9 +51,6 @@ def zrotmat(angle):
 
 #take pose data with the robot
 if mode == "takedata":
-    import roslib
-    roslib.load_manifest('WAMinterface')
-    from WAMClientROSFunctions import *
 
     #calibration sheet origins
     sheetorigins = [[.55, 0, 0], [.85, 0, 0], [.55, .28, 0], [.85, .28, 0]]
@@ -100,10 +99,6 @@ if mode == "takedata":
     def pickle_data():
         pickle.dump([calibrationpositions, calibrationmotorangles, barrettjointangles, barrettpositions], open("calibdata.p", "w"))
 
-
-
-    print "initializing wamik library"
-    wamik.init_wamik()
 
     print "starting the WAM client"
     connect_WAM_client(4321)
@@ -194,14 +189,12 @@ if mode == "takedata":
     close_WAM_client()
 
 
-#compute best-fit transmission ratios
+
+#compute best-fit transmission ratios (assumes calibdata.p exists)
 if mode == "compute_ratios":
 
     from scipy.optimize import *
-
-    #starting estimate of transmission ratios 
-    #(N and n from wam.conf: N[2] usually == N[1], so it's been replaced by n[2] for conciseness; likewise with N[5] and n[5])
-    N = [42, 28.25, 1.68, 18, 9.4796, 1, 14.93]
+    import wamik
 
     #return J2MP, the matrix to go from joint angles to motor angles
     def findJ2MP(N):
@@ -210,12 +203,12 @@ if mode == "compute_ratios":
             J2MP[i,i] = -N[i]
         J2MP[1,1] = N[1]
         J2MP[2,1] = -N[1]
-        J2MP[1,2] = -N[1]/N[2]
-        J2MP[2,2] = -N[1]/N[2]
+        J2MP[1,2] = -N[1]/(N[2]/100.)
+        J2MP[2,2] = -N[1]/(N[2]/100.)
         J2MP[4,4] = N[4]
         J2MP[5,4] = N[4]
-        J2MP[4,5] = -N[4]/N[5]
-        J2MP[5,5] = N[4]/N[5]
+        J2MP[4,5] = -N[4]/(N[5]/100.)
+        J2MP[5,5] = N[4]/(N[5]/100.)
         return J2MP
 
     #return M2JP, the matrix to go from motor angles to joint angles
@@ -225,13 +218,22 @@ if mode == "compute_ratios":
             M2JP[i,i] = -1./N[i]
         M2JP[1,1] = 1./N[1]/2.
         M2JP[1,2] = -M2JP[1,1]
-        M2JP[2,1] = -1./(N[1]/N[2])/2.
+        M2JP[2,1] = -1./(N[1]/(N[2]/100.))/2.
         M2JP[2,2] = M2JP[2,1]
         M2JP[4,4] = 1./N[4]/2.
         M2JP[4,5] = M2JP[4,4]
-        M2JP[5,4] = -1./(N[4]/N[5])/2.
+        M2JP[5,4] = -1./(N[4]/(N[5]/100.))/2.
         M2JP[5,5] = -M2JP[5,4]
         return M2JP
+
+    #print a transform matrix in wam.conf format
+    def printTransformMatrixToStr(mat):
+        printstr = '<'
+        for i in range(7):
+            printstr += "<" + ','.join(['%.7f' % x for x in mat[i,:].tolist()[0]])+">,"
+        printstr = printstr[:-1]
+        printstr += '>\n'
+        return printstr 
 
     #motorangles is a 7x1 scipy matrix, N is a 7-list of transmission ratios
     def convertMotorToJoint(motorangles, N):
@@ -243,15 +245,158 @@ if mode == "compute_ratios":
         J2MP = findJ2MP(N)
         return J2MP*jointangles
 
+    #optimization function
+    def optfunc(N):
+        penalty = 0.
+        if verbose:
+            rotdiffarray = []
+            posdiffarray = []
+        for index in range(len(calibrationpositions)):
+            #if index%9<=2: #just upright
+            #if index%9>2:  #just sideways
+            #    continue
+            motorangles = calibrationmotorangles[index]
+            palmmat = calibrationpositions[index]
+            
+            if type(motorangles) != int:
+                jointangles = convertMotorToJoint(scipy.matrix(motorangles).transpose(), N)
+                jointangleslist = jointangles.transpose().tolist()[0]
+                fkresultpalmmat = wamik.mat4(wamik.run_fk(jointangleslist))
+                fkbasepalmmat = joint0_to_base_mat * fkresultpalmmat
+
+            rotanglediff = wamik.rotangle(fkbasepalmmat[0:3,0:3], palmmat[0:3,0:3])
+            if rotanglediff > .5: #clearly got the wrong pose
+                continue
+            posdiff = fkbasepalmmat[0:3,3]-palmmat[0:3,3]
+            posdiffmagsq = (posdiff.transpose()*posdiff)[0,0]
+            pospenalty = posfact * posdiffmagsq 
+            rotpenalty = rotfact * rotanglediff**2
+            penalty += pospenalty + rotpenalty
+
+            if verbose:
+                #print "fkbasepalmmat:\n", ppmat4tostr(fkbasepalmmat)
+                #print "actualrot:\n", ppmat4tostr(palmmat)
+                #print "rotanglediff:", rotanglediff
+                #print "posdiff:", ppscipyvecttostr(posdiff)
+                #print "posdiffmagsq:", posdiffmagsq
+                #print "posdiffmag:", posdiffmagsq**.5
+                #print "pospenalty:", pospenalty
+                #print "rotpenatly:", rotpenalty
+                posdiffarray.append(posdiffmagsq**.5)
+                rotdiffarray.append(rotanglediff)
+                #raw_input()
+        #print "N:", ppdoublelisttostr(N)
+        #print "N:", N
+        #print "total penalty:", penalty
+        #raw_input()
+        if verbose:
+            print "posdiffarray:", ppdoublelisttostr(posdiffarray)
+            print "rotdiffarray:", ppdoublelisttostr(rotdiffarray)
+            print "average pos diff:%.3f"%(sum(posdiffarray)/len(posdiffarray))
+            print "average rot diff:%.3f"%(sum(rotdiffarray)/len(rotdiffarray))
+
+        return penalty
+
+
+    #run optimization (cobyla is a constraint-based optimizer, which is excessive given the lack of
+    #constraints, but it happens to be one I'm used to using)
+    def run_transmission_ratio_opt(startN):
+        answer = fmin_cobyla(optfunc, startN, [], rhobeg = .1, rhoend = .0001, iprint = 1, maxfun = 100000)
+        return answer
+
+    print "initializing wamik library"
+    wamik.init_wamik()
+
+    print "unpickling data"
     [calibrationpositions, calibrationmotorangles, barrettjointangles, barrettpositions] = pickle.load(open("calibdata.p", "r"))
 
-    #optimization value function
-    def optfunc(N):
-        for (motorangles, palmmat) in zip(calibrationmotorangles, calibrationpositions):
-            if type(motorangles) != int:
-                jointangles = convertMotorToJoint(motorangles, N)
-                fkresult = 
-    
+    posfact = 10000   #factor to multiply position differences
+    rotfact = 100   #factor to multiply rotation differences
+    verbose = 0
+
+    #starting estimate of transmission ratios 
+    #(N and n from wam.conf: N[2] usually == N[1], so it's been replaced by 100*n[2] for conciseness; likewise with N[5] and 100*n[5]) 
+    #(factor of 100 is so that step sizes for N[2] and N[5] step sizes are comparable to the rest)
+    startN = [42., 28.25, 1.68*100., 18., 9.4796, 1*100., 14.93]
+
+    verbose = 1
+    print "before optimization:"
+    optfunc(startN)
+    verbose = 0
+    print "running transmission ratio optimization"
+    newN = run_transmission_ratio_opt(startN)
+    print "new transmission ratios:", ppdoublelisttostr(newN)
+
+    verbose = 1
+    print "after optimization:"
+    optfunc(newN)
+
+    m2jp = findM2JP(newN)
+    print "copy these into your wam.conf (and comment out the old):"
+    print "N = <%.3f %.3f %.3f %.3f %.3f %.3f %.3f>"%(newN[0],newN[1],newN[1],newN[3],newN[4],newN[4],newN[6])
+    print "n = <0, 0, %.3f, 0, 0, %.3f, 0>"%(newN[2]/100., newN[5]/100.)
+    print "m2jp =", printTransformMatrixToStr(m2jp)
+    j2mp = findJ2MP(newN)
+    print "j2mp =", printTransformMatrixToStr(j2mp)
+    print "j2mt =", printTransformMatrixToStr(m2jp)
 
 
+'''
+my results:
+just vertical poses:
+new transmission ratios: 41.985 27.934 168.333 17.931 9.500 101.055 14.932
 
+before optimization:
+posdiffarray: 0.001 0.004 0.004 0.006 0.009 0.009 0.006 0.006 0.009 0.012 0.012 0.013 0.002 0.003 0.005 0.009 0.007 0.009 0.009 0.007 0.012 0.013 0.010 0.011
+rotdiffarray: 0.031 0.036 0.048 0.045 0.053 0.049 0.037 0.045 0.043 0.033 0.037 0.043 0.050 0.051 0.026 0.044 0.047 0.040 0.035 0.047 0.040 0.049 0.047 0.042
+average pos diff: 0.008
+average rot diff: 0.042
+
+after optimization:
+posdiffarray: 0.004 0.004 0.002 0.003 0.006 0.004 0.004 0.001 0.002 0.006 0.006 0.008 0.005 0.006 0.002 0.006 0.005 0.005 0.004 0.005 0.006 0.006 0.003 0.004
+rotdiffarray: 0.015 0.019 0.031 0.026 0.039 0.037 0.028 0.025 0.045 0.028 0.021 0.020 0.032 0.034 0.019 0.030 0.036 0.023 0.021 0.021 0.021 0.036 0.026 0.024
+average pos diff: 0.004
+average rot diff: 0.027
+
+
+just sideways poses:
+new transmission ratios: 41.309 27.929 167.139 17.984 9.451 98.525 14.742
+
+before optimization:
+posdiffarray: 0.006 0.008 0.006 0.011 0.017 0.003 0.003 0.014 0.011 0.016
+rotdiffarray: 0.060 0.060 0.014 0.025 0.049 0.074 0.043 0.035 0.044 0.059
+average pos diff:0.009
+average rot diff:0.046
+
+after optimization:
+posdiffarray: 0.002 0.005 0.004 0.003 0.003 0.003 0.004 0.002 0.005 0.006
+rotdiffarray: 0.050 0.076 0.027 0.034 0.036 0.036 0.043 0.025 0.054 0.048
+average pos diff:0.004
+average rot diff:0.043
+
+
+#all poses:
+new transmission ratios: 41.495 27.933 167.595 17.951 9.488 99.641 14.894
+
+before optimization:
+posdiffarray: 0.006 0.008 0.006 0.001 0.004 0.004 0.006 0.009 0.009 0.011 0.017 0.006 0.006 0.009 0.012 0.012 0.013 0.003 0.003 0.002 0.003 0.005 0.009 0.007 0.009 0.014 0.011 0.016 0.009 0.007 0.012 0.013 0.010 0.011
+rotdiffarray: 0.060 0.060 0.014 0.031 0.036 0.048 0.045 0.053 0.049 0.025 0.049 0.037 0.045 0.043 0.033 0.037 0.043 0.074 0.043 0.050 0.051 0.026 0.044 0.047 0.040 0.035 0.044 0.059 0.035 0.047 0.040 0.049 0.047 0.042
+average pos diff:0.008
+average rot diff:0.044
+
+after optimization:
+posdiffarray: 0.006 0.008 0.004 0.005 0.005 0.003 0.004 0.006 0.004 0.004 0.005 0.002 0.004 0.003 0.007 0.008 0.010 0.003 0.006 0.006 0.006 0.003 0.004 0.003 0.003 0.003 0.006 0.006 0.006 0.004 0.008 0.006 0.004 0.005
+rotdiffarray: 0.052 0.061 0.026 0.019 0.021 0.040 0.034 0.035 0.031 0.047 0.047 0.033 0.030 0.046 0.036 0.026 0.034 0.042 0.042 0.030 0.028 0.020 0.025 0.024 0.022 0.046 0.052 0.048 0.017 0.027 0.023 0.032 0.022 0.033
+average pos diff:0.005
+average rot diff:0.034
+
+N = <41.495 27.933 27.933 17.951 9.488 9.488 14.894>
+n = <0, 0, 1.676, 0, 0, 0.996, 0>
+m2jp = <<-0.0240992,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0178997,-0.0178997,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,-0.0299990,-0.0299990,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,-0.0557062,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,0.0526984,0.0526984,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,-0.0525091,0.0525091,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,-0.0671406>>
+
+j2mp = <<-41.4950940,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,27.9334928,-16.6672372,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,-27.9334928,-16.6672372,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,-17.9513154,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,9.4879521,-9.5221543,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,9.4879521,9.5221543,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,-14.8941279>>
+
+j2mt = <<-0.0240992,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0178997,-0.0178997,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,-0.0299990,-0.0299990,0.0000000,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,-0.0557062,0.0000000,0.0000000,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,0.0526984,0.0526984,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,-0.0525091,0.0525091,0.0000000>,<0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,-0.0671406>>
+
+
+'''
