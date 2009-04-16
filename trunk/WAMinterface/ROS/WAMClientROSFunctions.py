@@ -256,8 +256,10 @@ def clipArrayMag(arr, maxmag):
 #don't move joints that are already within anglethreshold
 #opens/closes fingers together whenever possible
 #if you already have the current finger angles, input them to avoid querying
+#returns 1 if a command was sent to the hand; 0 otherwise
 def hand_move_incremental(goalangles, maxincrement = None, anglethreshold = .01, currentfingerangs = None):
     verbose = 0
+    sentcommand = 0
 
     #track which motors to move individually
     moveindmotors = scipy.array([1,1,1,1])            
@@ -281,12 +283,14 @@ def hand_move_incremental(goalangles, maxincrement = None, anglethreshold = .01,
                 print "moving all fingers in by maxincrement"
             cmd = "GIC " + str(posmove)
             hand_send_raw_cmd(cmd)
+            sentcommand = 1
             moveindmotors[1:4] = [0,0,0]
         elif all(angdiffs[1:4] < -maxincrement):
             if verbose:
                 print "moving all fingers out by maxincrement"
             cmd = "GIO " + str(posmove)
             hand_send_raw_cmd(cmd)
+            sentcommand = 1
             moveindmotors[1:4] = [0,0,0]
 
         #clip moves to at most maxincrement
@@ -301,6 +305,7 @@ def hand_move_incremental(goalangles, maxincrement = None, anglethreshold = .01,
             posmove = hand_angleToPosition(1, goalangles[1])
             cmd = "GM " + str(posmove)
             hand_send_raw_cmd(cmd)
+            sentcommand = 1
             moveindmotors[1:4] = [0,0,0]
             if verbose:
                 print "moving all fingers to angle %.3f"%goalangles[1]
@@ -311,6 +316,7 @@ def hand_move_incremental(goalangles, maxincrement = None, anglethreshold = .01,
     #if we're still moving all 4 motors, send all four angles as one command
     if all(moveindmotors):
         hand_set_all_finger_angles(goalangles)
+        sentcommand = 1
         if verbose:
             print "moving to goalangles:", ppdoublearray(goalangles)
 
@@ -321,9 +327,11 @@ def hand_move_incremental(goalangles, maxincrement = None, anglethreshold = .01,
         for motor in range(4):
             if moveindmotors[motor]:
                 hand_set_finger_angle(motor, goalangles[motor])
+                sentcommand = 1
                 if verbose:
                     print "moving motor", motor, "to angle %.3f"%goalangles[motor]
 
+    return sentcommand
 
 #get the strain gauge values for all three fingers ([F1 F2 F3])
 def hand_get_strain_gauge():
