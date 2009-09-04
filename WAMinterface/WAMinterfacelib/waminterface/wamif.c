@@ -306,6 +306,7 @@ int wamif_wait_until_traj_done(WamInterface *serv){
 	while(!MoveIsDone(serv->wam)){
 		usleep(1000);
 	}
+	stop_trj_bts(serv->active_bts);
 	return 1;
 }
 
@@ -340,6 +341,121 @@ void wamif_stop_controllers(WamInterface *serv){
 	//stop_trj_bts(serv->active_bts);
 	MoveStop(serv->wam);
 	setmode_bts(serv->active_bts, SCMODE_IDLE);
+}
+
+
+//move through a joint angle trajectory (list of double[7]s of length length)
+void wamif_move_joint_trajectory(WamInterface *serv, double jointanglelist[][7], int length){
+	char vbuf[512];
+	vect_n *angles = new_vn(7);
+
+	//stop any currently running trajectories
+	if(getmode_bts(serv->active_bts) == SCMODE_TRJ){
+		wamif_stop_controllers(serv);
+	}
+
+	//switch to joint trajectory mode if not already there
+	wamif_switch_to_joint(serv);
+
+	//destroy the old trajectory and create a new one
+	destroy_vta(serv->vta);
+	//printf("destroyed vta\n");
+	//serv->vt_j = new_vta(len_vn(serv->wam->Jpos),length);
+	*serv->vta = new_vta(len_vn(serv->wam->Jpos),length);
+	//printf("created new vta\n");
+	//serv->vta = &serv->vt_j;
+	register_vta(serv->active_bts,*serv->vta);
+	//printf("registered vta\n");
+
+
+	//clip to joint limits and add each set of joint angles to the trajectory
+	int i, trajnum;
+	double jointangle;
+	for(trajnum = 0; trajnum < length; trajnum++){
+		printf("trajnum:%d ",trajnum);
+		for(i=0; i<7; i++){
+			//printf("i:%d\n", i);
+			jointangle = jointanglelist[trajnum][i];
+			//printf("jointangle before clip: %f\n", jointangle);
+			if(jointangle > jointupperlimits[i]) jointangle = jointupperlimits[i];
+			else if(jointangle < jointlowerlimits[i]) jointangle = jointlowerlimits[i];
+			//printf("jointangle after clip: %f\n", jointangle);
+			printf("%f ",jointangle);
+			setval_vn(angles, i, jointangle);
+		}
+		printf("\n");
+		//printf("trajnum: %d\n", trajnum);
+		ins_point_vta(*serv->vta, angles);
+		/*
+		vectray* vr;
+		int cpt, nrows;
+		int idx;
+		char vect_buf1[2500];
+		vr = get_vr_vta(*serv->vta);
+		cpt = get_current_idx_vta(*serv->vta);
+		nrows = numrows_vr(vr);
+		printf("number of rows in serv->vta %d\n",nrows);
+		printf("cpt-1 %d %s\n",cpt-1,sprint_vn(vect_buf1,idx_vr(vr,cpt-1)));
+		*/
+	}
+
+	//set_current_idx_vta(*serv->vta,0);
+	double vel = .75,acc = .5;
+	vectray* vr;
+	int cpt, nrows;
+	int idx;
+	char vect_buf1[2500];
+	vr = get_vr_vta(*serv->vta);
+	cpt = get_current_idx_vta(*serv->vta);
+	nrows = numrows_vr(vr);
+	//printf("number of rows in serv->vta %d\n",nrows);
+	//for (i=0;i<nrows;i++){
+	//	printf("pt%d %s\n",cpt,sprint_vn(vect_buf1,idx_vr(vr,i)));
+	//}
+	dist_adjust_vta(*serv->vta,vel);
+	//for (i=0;i<nrows;i++){
+	//	printf("pt%d %s\n",i,sprint_vn(vect_buf1,idx_vr(vr,i)));
+	//}
+
+	//printf("state controller state %d\t trajectory state %d\n",getmode_bts(serv->active_bts),serv->active_bts->btt.state);
+
+	//set up the new trajectory
+
+	MoveSetup(serv->wam,vel,acc);
+	MoveWAM(serv->wam,(*(serv->active_bts->btt.reset))(&(serv->active_bts->btt)));
+	//printf("state controller state %d\t trajectory state %d\n",getmode_bts(serv->active_bts),serv->active_bts->btt.state);
+
+	printf("setting up the trajectory\n");
+	wamif_wait_until_traj_done(serv);
+	moveparm_bts(serv->active_bts,vel,acc);
+
+	//printf("setting SCMODE_POS\n");
+	if (getmode_bts(serv->active_bts) != SCMODE_POS)
+		setmode_bts(serv->active_bts,SCMODE_POS);
+
+	//printf("state controller state %d\t trajectory state %d\n",getmode_bts(serv->active_bts),serv->active_bts->btt.state);
+	serv->active_bts->prep_only = 1;
+
+	//for (i=0;i<nrows;i++){
+	//	printf("pt%d %s\n",i,sprint_vn(vect_buf1,idx_vr(vr,i)));
+	//}
+	printf("starting joint space trajectory\n");
+	int result = start_trj_bts(serv->active_bts);
+	//printf("start_trj_bts returned %d\n",result);
+	//for (i=0;i<nrows;i++){
+	//	printf("pt%d %s\n",i,sprint_vn(vect_buf1,idx_vr(vr,i)));
+	//}
+	
+	/*
+	int cnt = 0;
+	while (cnt<50){
+		cnt++;
+		usleep(100000);
+		printf("state controller state %d\t trajectory state %d\n",getmode_bts(serv->active_bts),serv->active_bts->btt.state);
+
+	}
+	*/
+  
 }
 
 

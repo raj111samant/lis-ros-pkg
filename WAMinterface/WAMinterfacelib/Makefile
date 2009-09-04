@@ -116,7 +116,8 @@ TESTPROGRAMS = 	testprograms/WAMtest \
 					testprograms/RThandtest \
 				  testprograms/handtest \
 				  testprograms/straindump \
-					testprograms/testhandicspeed
+					testprograms/testhandicspeed \
+					testprograms/jointtrajectorytest
 
 
 CC  = gcc

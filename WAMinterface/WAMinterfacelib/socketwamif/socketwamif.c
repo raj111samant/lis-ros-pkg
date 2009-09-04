@@ -274,7 +274,7 @@ void parse_input(){
 
 	//set the torque limits for the arm (Nm)
 	//{6.31, 6.31, 6.31, 6.31, 1.826, 1.826, 0.613} are Barrett's stated peak values
-	//{7.75,7.75,7.75,7.75,2.5,2.5,2} gives you most of the possible torque while avo
+	//{7.75,7.75,7.75,7.75,2.5,2.5,2} gives you most of the possible torque while avoiding torque faults most of the time
 	else if(!strcmp(header, "tlm")){
 		//get torque limits
 		double torquelimits[7];
@@ -353,7 +353,45 @@ void parse_input(){
 		write_double_array(sockid, rot, 9);
 	}
 
+	//Arm joint trajectory control
 
+	//move through a joint angle trajectory (list of double[7]s of length length)
+	else if (!strcmp(header, "jtc")){
+		if (wamif){
+			//get length
+			int len = 0;
+			if (!read_int(sockid, &len, &separator)){
+				printf("error in reading length!\n");
+				return;
+			}
+		
+			//get joint angle list
+			double jointanglelist[len][7];
+			int trajnum;
+			for (trajnum = 0; trajnum < len; trajnum++){
+				if (!read_double_array(sockid, jointanglelist[trajnum], 7, &separator)){
+					printf("error in reading joint angle list %d!\n",trajnum);
+					return;
+				}
+			}
+
+			//test input
+			printf("length %d\n",len);
+			for (trajnum = 0; trajnum < len; trajnum++){
+				for (i = 0; i < 7; i++){
+					printf("%f\t",jointanglelist[trajnum][i]);
+				}
+				printf("\n");
+			}
+			//move arm
+			wamif_move_joint_trajectory(wamif, jointanglelist, len);		
+			write(sockid, "d", 1);
+		}
+		else{
+			printf("connect the arm first!\n");
+			write(sockid, "e", 1);
+		}
+	}
 
 	//Hand supervisory commands
 

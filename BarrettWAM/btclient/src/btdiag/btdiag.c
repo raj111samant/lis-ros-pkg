@@ -1111,7 +1111,7 @@ void RenderMAIN_SCREEN()
    //++line;
    
    line +=1;
-   mvprintw(line,0,"");
+   mvprintw(line,0,"state controller state %d\t trajectory state %d",getmode_bts(wamData[0].active_bts),wamData[0].active_bts->btt.state);
    entryLine = line;
    refresh();
 }

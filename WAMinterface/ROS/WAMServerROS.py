@@ -196,6 +196,20 @@ def get_cartesian_pos_and_rot(req):
     (pos, rot) = socketservercmds.get_cartesian(sock)
     return CartesianPosAndRotResponse(pos, rot)
 
+#Arm joint trajectory control
+
+#move through a joint angle trajectory (list of double[7]s of length length)
+#e.g: req.len = 2, req.traj = [0,1,2,3,4,5,6,0,1,2,3,4,5,6]
+def move_joint_trajectory(req):
+    print "moving joint trajectory"
+    success = socketservercmds.move_joint_trajectory(sock,req.len,req.traj)
+    if len(req.traj) % req.len !=0:
+        print "trajectory must contain multiple of len joint angles!", req.traj, req.len
+        return False
+    if not success:
+        print "error in move_joint_trajectory!"
+    return JointTrajectoryMoveResponse()
+
 
 #run analytical inverse kinematics (palmmat4 is center-of-palm tool frame)
 #(doesn't require the robot or running connect_WAM_client)
@@ -273,7 +287,7 @@ def hand_set_all_finger_positions(req):
 #motor is 0 for spread, 1-3 for finger bend
 #waits for termination
 def hand_set_finger_angle(req):
-    print "setting finger %d angle to %d"%(req.motor, req.angle)
+    print "setting finger %d angle to %f"%(req.motor, req.angle)
     success = socketservercmds.set_finger_angle(sock, req.motor, req.angle)
     if not success:
         print "error in set_finger_angle!"
@@ -379,6 +393,7 @@ def run_server():
     rospy.Service('set_torque_limits', TorqueLimits, set_torque_limits)
     rospy.Service('move_to_cartesian', CartesianMove, move_to_cartesian)
     rospy.Service('get_cartesian_pos_and_rot', CartesianPosAndRot, get_cartesian_pos_and_rot)
+    rospy.Service('move_joint_trajectory', JointTrajectoryMove, move_joint_trajectory)
     rospy.Service('inverse_kinematics', InverseKinematics, inverse_kinematics)
     rospy.Service('optimization_inverse_kinematics', InverseKinematics, optimization_inverse_kinematics) 
     rospy.Service('forward_kinematics', ForwardKinematics, forward_kinematics)

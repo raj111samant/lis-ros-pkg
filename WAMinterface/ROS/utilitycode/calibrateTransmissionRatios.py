@@ -1,6 +1,7 @@
 '''Calibrate the transmission ratios for the arm cables
 To take data, uncomment mode = "take_data", start roscore, then run WAMinterface/ROS/WAMServerROS.py, then run this script, then run WAMinterface/WAMinterfacelib/socketwamif (as root!!) when prompted to do so.
-To compute transmission ratios, uncomment mode = "compute_ratios"'''
+To compute transmission ratios, uncomment mode = "compute_ratios".
+To test the accuracy of the calibration positions, uncomment mode = "test_accuracy"'''
 
 #mode = "take_data"
 #mode = "compute_ratios"
