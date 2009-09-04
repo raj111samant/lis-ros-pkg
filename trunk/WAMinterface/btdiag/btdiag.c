@@ -772,7 +772,7 @@ int main(int argc, char **argv)
    exit(1);
 }
 
-double torquelimits[7] = {7.75,7.75,7.75,7.75,2.5,2.5,2};
+double torquelimits[7] = {9.99,9.99,9.99,9.99,9.99,9.99,9.99};
 //double torquelimits[7] = {7.75,7.75,7.75,7.75,.5,.5,.5};
 //double torquelimits[7] = {7.75,7.75,7.75,7.75,1.0, 1.0, 1.0};
 //double torquelimits[7] = {-1,-1,-1,-1,-1,-1,-1};

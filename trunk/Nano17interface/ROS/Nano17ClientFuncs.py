@@ -33,7 +33,7 @@ def call_get_nano17_loc_normal_and_force(sensornum):
     resp = call_ROS_service('get_nano17_loc_normal_and_force', LocNormalAndForce, [sensornum])
     if resp != None:
         return (resp.loc, resp.normal, resp.forcemag)
-    return (None, None)
+    return (None, None, None)
 
 #get locs and forces from all sensors
 def get_all_nano17_locs_normals_and_forces(sensorcount):
@@ -55,8 +55,8 @@ if __name__ == '__main__':
 
     while 1:
         (locs, normals, forcemags) = get_all_nano17_locs_normals_and_forces(nano17count)
-        #for sensornum in range(nano17count):
-        for sensornum in [0]:
+        for sensornum in range(nano17count):
+        #for sensornum in [0]:
             print "sensornum:", sensornum
             #values = call_get_nano17_values(sensornum)
             #print "values:", values

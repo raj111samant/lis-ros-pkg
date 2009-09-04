@@ -48,9 +48,9 @@ bool get_nano17_loc_normal_and_force(Nano17interface::LocNormalAndForce::Request
 int main(int argc, char **argv){
 
 	string portnames[NANO17COUNT];
-	portnames[0] = string("/dev/ttyUSB1");
+	portnames[0] = string("/dev/ttyUSB3");
 	if(NANO17COUNT > 1) portnames[1] = string("/dev/ttyUSB2");
-	if(NANO17COUNT > 2) portnames[2] = string("/dev/ttyUSB3");
+	if(NANO17COUNT > 2) portnames[2] = string("/dev/ttyUSB1");
 
  	//Initialize ROS
 	ros::init(argc, argv);

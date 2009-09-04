@@ -10,7 +10,7 @@ void shutdown(int signum) {
   
 int main(int argc, char *argv[]){
 
-	nano = nano17_open("/dev/ttyUSB3");
+	nano = nano17_open("/dev/ttyUSB2");
 	if(!nano) {
 		printf("error opening Nano17\n");
 		return 0;

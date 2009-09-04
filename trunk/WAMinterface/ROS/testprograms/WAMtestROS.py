@@ -8,7 +8,7 @@ roslib.load_manifest('WAMinterface')
 from WAMClientROSFunctions import *
 
 movearm = 1
-movehand = 1
+movehand = 0
 pause = 1
 
 print "starting the WAM client"
@@ -18,7 +18,7 @@ if movearm:
     print "connecting to arm"
     connect_arm()
 
-    torquelimits = [7.75,7.75,7.75,7.75,2.5,2.5,2]
+    torquelimits = [9.99,9.99,9.99,9.99,9.99,9.99,9.99]
     print "setting torque limits to", torquelimits
     set_torque_limits(torquelimits)
 
@@ -56,6 +56,35 @@ if movearm:
     (pos, rot) = get_cartesian_pos_and_rot()
     print "pos:", ppdoublearray(pos)
     print "rot:", ppdoublearray(rot)
+    if pause:
+        keypause()
+
+    print "get the current joint angles"
+    jointangles = get_joint_angles()
+    if jointangles != None:
+        print "joint angles:", ppdoublearray(jointangles)
+
+    print "carrying out a trajectory"
+    length = 4
+    traj = [
+        [0.009007, -2.005244, 0.041125, 3.049417, 0.081722, -0.131585, -0.035286],
+        [-0.000298, -1.762723, 0.034756, 2.848247, 0.062907, -0.094783, 0.002270],
+        [-0.017828, -0.875831, 0.030786, 2.565059, 0.145275, 0.031809, -0.054683],
+        [-0.017418, -1.459543, 0.024555, 2.865306, 0.103445, 0.092045, -0.078104]
+        ]
+    t=[]
+    for a in traj:
+        t.extend(a)
+    print "len:", length
+    print "traj:", t
+    success = move_joint_trajectory(length,t)
+    print "traj move success?", success != None
+
+    print "get the current joint angles"
+    jointangles = get_joint_angles()
+    if jointangles != None:
+        print "joint angles:", ppdoublearray(jointangles)
+
     if pause:
         keypause()
 

@@ -24,6 +24,11 @@ else:
     for i in range(2):
         hand_send_raw_cmd('GO')
 
+
+torquelimits = [7.75,7.75,7.75,7.75,2.5,2.5,2]
+print "setting torque limits to", torquelimits
+set_torque_limits(torquelimits)
+
 justabovehome = [0, -1.99, 0, 2.4, 0, 0.25, 0]
 print "moving to just above home"
 move_to_joint(justabovehome)

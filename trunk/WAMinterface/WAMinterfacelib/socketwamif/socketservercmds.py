@@ -278,6 +278,23 @@ def get_cartesian(sock):
     return (pos, rot)
 
 
+#Arm joint trajectory control
+
+#move through a joint angle trajectory (list of double[7]s of length length)
+#e.g: len = 2, traj = [0,1,2,3,4,5,6,0,1,2,3,4,5,6]
+def move_joint_trajectory(sock, length, traj):
+    if len(traj) % length != 0:
+        return  
+    send(sock, "jtc")
+    write_num(sock, length)
+    # uncomment code below to allow traj format traj = [[0,1,2,3,4,5,6],[0,1,2,3,4,5,6]]
+    #otraj = []
+    #for x in traj:
+    #    otraj.extend(x)
+    #write_array(sock, otraj)
+    write_array(sock,traj)
+    return get_ack_d(sock)
+
 
 #Hand supervisory commands
 
@@ -495,12 +512,13 @@ if __name__ == '__main__':
         if movearm:
             print "connecting to arm"
             connect_arm(sock)
-
+            
+            
             print "getting motor counts"
             motorangles = get_motor_angles(sock)
             print "motorangles:", ppdoublearray(motorangles)
 
-            torquelimits = [7.75,7.75,7.75,7.75,2.5,2.5,2]
+            torquelimits = [9.99,9.99,9.99,9.99,9.99,9.99,9.99]
             print "setting torque limits to", torquelimits
             set_torque_limits(sock, torquelimits)
 
@@ -536,6 +554,31 @@ if __name__ == '__main__':
             (pos, rot) = get_cartesian(sock)
             print "pos:", pos
             print "rot:", rot
+            if pause:
+                keypause()
+            
+            print "get the current joint angles"
+            currentjointangles = get_joint(sock)
+            print "jointangles:", ppdoublearray(currentjointangles)
+
+            print "carrying out a trajectory"
+            length = 4
+            traj = [
+                   [0.009007, -2.005244, 0.041125, 3.049417, 0.081722, -0.131585, -0.035286],
+                   [-0.000298, -1.762723, 0.034756, 2.848247, 0.062907, -0.094783, 0.002270],
+                   [-0.017828, -0.875831, 0.030786, 2.565059, 0.145275, 0.031809, -0.054683],
+                   [-0.017418, -1.459543, 0.024555, 2.865306, 0.103445, 0.092045, -0.078104]
+                ]
+            t=[]
+            for a in traj:
+                t.extend(a)
+            success = move_joint_trajectory(sock,length,t)
+            print "traj move success?", success!= None
+            
+            print "get the current joint angles"
+            currentjointangles = get_joint(sock)
+            print "jointangles:", ppdoublearray(currentjointangles)
+            
             if pause:
                 keypause()
 

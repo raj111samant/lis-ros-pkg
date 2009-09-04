@@ -51,7 +51,7 @@ void get_feedback(){
 void run_main(){
 	int i;
 	int move_arm = 1;
-	int move_hand = 1;
+	int move_hand = 0;
 
 	log_open("WAMtest.log");
 

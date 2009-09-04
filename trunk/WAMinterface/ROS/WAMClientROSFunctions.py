@@ -140,6 +140,14 @@ def get_cartesian_pos_and_rot():
     resp = call_ROS_service('get_cartesian_pos_and_rot', CartesianPosAndRot)
     return (resp.pos, resp.rot)
 
+#Arm joint trajectory control
+
+#move through a joint angle trajectory (list of double[7]s of length length)
+#e.g: len = 2, traj = [0,1,2,3,4,5,6,0,1,2,3,4,5,6]
+def move_joint_trajectory(len, traj):
+    resp = call_ROS_service('move_joint_trajectory', JointTrajectoryMove, [len, traj])
+    return resp != None
+
 
 #run inverse kinematics (palmmat4 is center-of-palm tool frame)
 #(doesn't require the robot or running connect_WAM_client)

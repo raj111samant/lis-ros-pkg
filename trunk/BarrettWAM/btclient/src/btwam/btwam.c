@@ -568,7 +568,7 @@ wam_struct* OpenWAM(char *fn, int bus)
             getProperty(0,m+1,MECH,&reply);
             setval_vn(curmag,m,(double)reply);
          }
-         /* Grab each motor's number of encoder counts into numcounts */
+         /* Grab each motor's number of encoder counts (per motor revolution) into numcounts */
          for (m=0; m<wam->dof; m++)
          {
             long reply;
@@ -578,6 +578,8 @@ wam_struct* OpenWAM(char *fn, int bus)
          /* Calculate the error in encoder counts */
          Jpos2Mpos(wam,wam->park_location,wam->Mpos);
          
+				 //errmag is difference between current 'home' and ideal home pos in encoder counts
+				 //(ideal-home-in-encoder-counts - (current-encoder-counts - zero-encoder-counts))
          set_vn(errmag, add_vn( scale_vn(1.0/(2*pi),
                                          e_mul_vn(numcounts,wam->Mpos)),
                                 sub_vn( zeromag, curmag )));
