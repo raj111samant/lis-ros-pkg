@@ -5,7 +5,7 @@ author: Kaijen Hsiao (kaijenhsiao@gmail.com)
 
 NOTE: Most of these libraries will only compile on the WAM's computer (they require the BarrettWAM package, which depends on Xenomai/RTAI), but to use the ROS interface, all you need to compile is the ROS services, so to call the ROS services from another computer,  comment out everything under the line 
 {{{
-Build WAMinterfacelib, WAMinversekinematics, and btdiag 
+# Build WAMinterfacelib, WAMinversekinematics, and btdiag 
 }}}
 in CMakelists.txt and type 'make' in this directory.
 This package is configured for a Xenomai/Peak CAN bus system.  It will probably work in other configurations if you edit the Makefiles, but no guarantees.
