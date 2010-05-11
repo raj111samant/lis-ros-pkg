@@ -3,13 +3,14 @@
 Barrett WAM and Hand interface and inverse kinematics library.
 author: Kaijen Hsiao (kaijenhsiao@gmail.com)
 
-NOTE: Most of these libraries will only compile on the WAM's computer (they require the BarrettWAM package, which depends on Xenomai/RTAI), but to use the ROS interface, all you need to compile is the ROS services, so to call the ROS services from another computer, either comment out all but the 
+NOTE: Most of these libraries will only compile on the WAM's computer (they require the BarrettWAM package, which depends on Xenomai/RTAI), but to use the ROS interface, all you need to compile is the ROS services, so to call the ROS services from another computer,  comment out everything under the line 
 {{{
-`rospack find roslib`/scripts/gensrv srv/*.srv
-}}} 
-line, or just ignore all the errors when you type make in this directory.  This package is configured for a Xenomai/Peak CAN bus system.  It will probably work in other configurations if you edit the Makefiles, but no guarantees.
+Build WAMinterfacelib, WAMinversekinematics, and btdiag" in CMakelists.txt
+}}}
+and type 'make' in this directory.
+This package is configured for a Xenomai/Peak CAN bus system.  It will probably work in other configurations if you edit the Makefiles, but no guarantees.
 
-To use the non-ROS interfaces, look at the READMEs in WAMinterfacelib and WAMinversekinematics.  To use the ROS interface, install ROS as described at http://pr.willowgarage.com/wiki/ROS and look at the README in the ROS directory.
+To use the non-ROS interfaces, look at the READMEs in WAMinterfacelib and WAMinversekinematics.  To use the ROS interface, install ROS as described at http://www.ros.org/wiki/ROS/Installation and look at the README in the ROS directory.
 
 In this directory:
 
@@ -29,6 +30,8 @@ srv: ROS services
 
 manifest.xml: ROS manifest file
 
-Makefile: recursive make for all the relevant subdirectories.
+Makefile: runs CMake when you type 'make'
+
+Makefile.other: recursive make for all the relevant subdirectories.
 
 More specific details are in README files scattered throughout the directories.
