@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''ROS client functions to use the Barrett WAM and Hand (sample code in testprograms)
 author: Kaijen Hsiao (kaijenhsiao@gmail.com)'''
 
@@ -8,7 +9,6 @@ import scipy
 import pdb
 roslib.load_manifest('WAMinterface')
 
-from std_msgs.msg import *
 from std_srvs.srv import *
 import rospy
 from WAMinterface.srv import *

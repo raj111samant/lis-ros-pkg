@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''ROS server to use the Barrett WAM and Hand 
 Starts a socket server to use with WAMinterfacelib/socketwamif/socketwamif'''
 
@@ -5,7 +6,6 @@ Starts a socket server to use with WAMinterfacelib/socketwamif/socketwamif'''
 import roslib
 roslib.load_manifest('WAMinterface')
 
-from std_msgs.msg import *
 from std_srvs.srv import *
 import rospy
 from WAMinterface.srv import *
